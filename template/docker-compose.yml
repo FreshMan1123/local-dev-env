@@ -1,0 +1,131 @@
+# --------------------------------------------------------------------------
+# 一键式本地开发环境
+# 包含：MySQL, Redis (多实例), Kafka (与 Zookeeper), Elasticsearch
+# --------------------------------------------------------------------------
+
+services:
+  # 1. 关系型数据库 (MySQL 8.0)
+  mysql:
+    image: mysql:8.0
+    container_name: dev-mysql-8.0
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      # MYSQL_DATABASE: my_app_db  <- 由 SQL 脚本自行创建数据库
+      MYSQL_USER: chen
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 按顺序挂载初始化脚本和测试脚本
+      - /host-pwd/init-data/mysql:/docker-entrypoint-initdb.d/10-init
+      - /host-pwd/test-data/mysql:/docker-entrypoint-initdb.d/20-test
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # --------------------------------------------------------------------------
+  # 2. Redis 生态模拟 (多版本、多实例)
+  # --------------------------------------------------------------------------
+
+  # 实例 A: 用于应用主缓存 (Redis 7.0)
+  redis_cache:
+    image: redis:7.0-alpine
+    container_name: dev-redis-7.0-cache
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379" # 主实例使用默认端口
+    volumes:
+      - redis-cache-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  # 实例 B: 用于消息队列 (Redis 6.2)
+  redis_queue:
+    image: redis:6.2-alpine
+    container_name: dev-redis-6.2-queue
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6380:6379" # 暴露在 6380
+    volumes:
+      - redis-queue-data:/data
+
+  # 实例 C: 用于API速率限制 (Redis 5.0, 模拟旧版本兼容)
+  redis_ratelimit:
+    image: redis:5.0-alpine
+    container_name: dev-redis-5.0-ratelimit
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6381:6379" # 暴露在 6381
+    volumes:
+      - redis-ratelimit-data:/data
+
+  # --------------------------------------------------------------------------
+  # 3. 搜索引擎 (Elasticsearch 7.x)
+  # --------------------------------------------------------------------------
+  elasticsearch:
+    image: elasticsearch:7.17.5
+    container_name: dev-elasticsearch-7.17
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # 为本地环境限制内存
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -f http://localhost:9200/_cat/health >/dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # 4. 消息队列 (Kafka & Zookeeper)
+  # --------------------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.1
+    container_name: dev-zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.0.1
+    container_name: dev-kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+# --------------------------------------------------------------------------
+# 数据卷定义 (用于数据持久化)
+# --------------------------------------------------------------------------
+volumes:
+  mysql-data:
+  redis-cache-data:
+  redis-queue-data:
+  redis-ratelimit-data:
+  es-data: 
