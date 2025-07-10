@@ -1,5 +1,5 @@
-# 使用包含 docker-compose 的官方镜像，版本稳定
-FROM docker/compose:1.29.2
+# 使用阿里云的镜像，版本稳定
+FROM registry.cn-hangzhou.aliyuncs.com/docker-library/compose:1.29.2
 
 # 设置工作目录
 WORKDIR /workspace
