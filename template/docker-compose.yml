@@ -6,7 +6,7 @@
 services:
   # 1. 关系型数据库 (MySQL 8.0)
   mysql:
-    image: mysql:8.0
+    image: registry.cn-hangzhou.aliyuncs.com/aliyun-docker-rep/mysql:8.0
     container_name: dev-mysql-8.0
     restart: always
     command: --default-authentication-plugin=mysql_native_password
@@ -33,7 +33,7 @@ services:
 
   # 实例 A: 用于应用主缓存 (Redis 7.0)
   redis_cache:
-    image: redis:7.0-alpine
+    image: registry.cn-hangzhou.aliyuncs.com/aliyun-docker-rep/redis:7.0-alpine
     container_name: dev-redis-7.0-cache
     restart: always
     command: redis-server --save 60 1 --loglevel warning
@@ -49,7 +49,7 @@ services:
 
   # 实例 B: 用于消息队列 (Redis 6.2)
   redis_queue:
-    image: redis:6.2-alpine
+    image: registry.cn-hangzhou.aliyuncs.com/aliyun-docker-rep/redis:6.2-alpine
     container_name: dev-redis-6.2-queue
     restart: always
     command: redis-server --save 60 1 --loglevel warning
@@ -60,7 +60,7 @@ services:
 
   # 实例 C: 用于API速率限制 (Redis 5.0, 模拟旧版本兼容)
   redis_ratelimit:
-    image: redis:5.0-alpine
+    image: registry.cn-hangzhou.aliyuncs.com/aliyun-docker-rep/redis:5.0-alpine
     container_name: dev-redis-5.0-ratelimit
     restart: always
     command: redis-server --save 60 1 --loglevel warning
@@ -73,7 +73,7 @@ services:
   # 3. 搜索引擎 (Elasticsearch 7.x)
   # --------------------------------------------------------------------------
   elasticsearch:
-    image: elasticsearch:7.17.5
+    image: registry.cn-hangzhou.aliyuncs.com/aliyun-docker-rep/elasticsearch:7.17.5
     container_name: dev-elasticsearch-7.17
     restart: always
     environment:
@@ -94,7 +94,7 @@ services:
   # 4. 消息队列 (Kafka & Zookeeper)
   # --------------------------------------------------------------------------
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
+    image: registry.cn-hangzhou.aliyuncs.com/confluentinc/cp-zookeeper:7.0.1
     container_name: dev-zookeeper
     restart: always
     ports:
@@ -104,7 +104,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
-    image: confluentinc/cp-kafka:7.0.1
+    image: registry.cn-hangzhou.aliyuncs.com/confluentinc/cp-kafka:7.0.1
     container_name: dev-kafka
     restart: always
     depends_on:
